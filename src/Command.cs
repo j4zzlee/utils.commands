@@ -133,7 +133,7 @@ namespace st2forget.utils.commands
             foreach (var schema in Schemas)
             {
                 var isRequired = schema.IsRequired ? "{f:Red}Required{f:d}" : "";
-                $"{{f:Green}}{schema.ShortName}|{schema.Name}{{f:d}}{{t:30}}{isRequired}{{t:20}}{Description}".PrettyPrint(ConsoleColor.White);
+                $"\t{{f:Green}}{schema.ShortName}|{schema.Name}{{f:d}}{{t:30}}{isRequired}{{t:20}}{Description}".PrettyPrint(ConsoleColor.White);
             }
             @"
 {f:Yellow}*** Notes:{f:d}
