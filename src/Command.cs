@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
 using st2forget.console.utils;
@@ -64,19 +65,47 @@ namespace st2forget.utils.commands
         public virtual ICommand ReadArguments(IEnumerable<string> args)
         {
             Arguments = args.ToList();
+            if (HasArgument("help"))
+            {
+                return this;
+            }
+            Validate();
             Filter();
             return this;
         }
 
+        private void Validate()
+        {
+            "Verifying arguments...".PrettyPrint(ConsoleColor.White);
+            foreach (var schema in Schemas)
+            {
+                var regStr = $"^((-{schema.ShortName})|(--{schema.Name}))[:=]?";
+                var regex = new Regex(regStr);
+                var result = Arguments.FirstOrDefault(a => regex.IsMatch(a));
+                if (!string.IsNullOrWhiteSpace(result))
+                {
+                    $"Found argument {{f:Green}}{schema.Name}{{f:d}}, value: {{f:Green}}{regex.Replace(result, "")}{{f:d}}".PrettyPrint(ConsoleColor.White);
+                }
+                if (!schema.IsRequired)
+                {   
+                    continue;
+                }
+                if (string.IsNullOrWhiteSpace(result))
+                {
+                    throw new ArgumentException($"Missing argument {{f:Yellow}}{schema.Name}{{f:d}}.");
+                }
+            }
+        }
+
         protected virtual T ReadArgument<T>(string name)
         {
-            var scheme = Schemas.FirstOrDefault(s => s.Name.Equals(name) || s.ShortName.Equals(name));
-            if (scheme == null)
+            var schema = Schemas.FirstOrDefault(s => s.Name.Equals(name) || s.ShortName.Equals(name));
+            if (schema == null)
             {
                 throw new ArgumentException($"Argument {{f:Yellow}}{name}{{f:d}} is not defined.");
             }
 
-            var regStr = $"(-{scheme.ShortName}|--{scheme.Name})[:=]+";
+            var regStr = $"^((-{schema.ShortName})|(--{schema.Name}))[:=]?";
             var regex = new Regex(regStr);
 
             var result = Arguments.FirstOrDefault(a => regex.IsMatch(a));
@@ -88,10 +117,10 @@ namespace st2forget.utils.commands
                 {
                     return default(T);
                 }
-                return (T) Convert.ChangeType(result, typeof(T));
+                return (T) Convert.ChangeType(result.Trim(), typeof(T));
             }
 
-            if (scheme.IsRequired)
+            if (schema.IsRequired)
             {
                 throw new ArgumentException($"Missing argument {{f:Yellow}}{name}{{f:d}}.");
             }
@@ -108,7 +137,7 @@ namespace st2forget.utils.commands
             }
             return Arguments.Any(arg =>
             {
-                var regex = new Regex($"(-{scheme.ShortName}|--{scheme.Name})");
+                var regex = new Regex($"((-{scheme.ShortName})|(--{scheme.Name}))([:=].+)*");
                 return !string.IsNullOrWhiteSpace(arg) && regex.IsMatch(arg);
             });
         }
@@ -126,7 +155,7 @@ namespace st2forget.utils.commands
                 {
                     name = $"[{name}]";
                 }
-                commands += $"{commands} {name}";
+                commands += $" {name}";
             }
             $"{{f:Green}}Command:{{f:d}} {CommandName} {commands}".PrettyPrint(ConsoleColor.White);
             $"{{f:Green}}Description:{{f:d}} {Description}".PrettyPrint(ConsoleColor.White);
