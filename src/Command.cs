@@ -79,7 +79,7 @@ namespace st2forget.utils.commands
             "Verifying arguments...".PrettyPrint(ConsoleColor.White);
             foreach (var schema in Schemas)
             {
-                var regStr = $"^((-{schema.ShortName})|(--{schema.Name}))[:=]?";
+                var regStr = $"^((-{schema.ShortName})|(--{schema.Name}))([:=].*)?$";
                 var regex = new Regex(regStr);
                 var result = Arguments.FirstOrDefault(a => regex.IsMatch(a));
                 if (!string.IsNullOrWhiteSpace(result))
@@ -104,20 +104,23 @@ namespace st2forget.utils.commands
             {
                 throw new ArgumentException($"Argument {{f:Yellow}}{name}{{f:d}} is not defined.");
             }
-
-            var regStr = $"^((-{schema.ShortName})|(--{schema.Name}))[:=]?";
-            var regex = new Regex(regStr);
+            
+            var regex = new Regex($"^((-{schema.ShortName})|(--{schema.Name}))([:=].*)?$");
 
             var result = Arguments.FirstOrDefault(a => regex.IsMatch(a));
 
             if (!string.IsNullOrWhiteSpace(result))
             {
-                result = regex.Replace(result.Trim(), "");
-                if (string.IsNullOrWhiteSpace(result))
+                result = Regex.Replace(result.Trim(), $"^((-{schema.ShortName})|(--{schema.Name}))[:=]?$", "");
+                if (!string.IsNullOrWhiteSpace(result))
                 {
-                    return default(T);
+                    return (T) Convert.ChangeType(result.Trim(), typeof(T));
                 }
-                return (T) Convert.ChangeType(result.Trim(), typeof(T));
+                if (schema.IsRequired && !schema.IsUninary)
+                {
+                    throw new ArgumentException($"Argument {{f:Yellow}}{schema.Name}{{f:d}} should have a value.");
+                }
+                return default(T);
             }
 
             if (schema.IsRequired)
@@ -137,7 +140,7 @@ namespace st2forget.utils.commands
             }
             return Arguments.Any(arg =>
             {
-                var regex = new Regex($"((-{scheme.ShortName})|(--{scheme.Name}))([:=].+)*");
+                var regex = new Regex($"((-{scheme.ShortName})|(--{scheme.Name}))([:=].+)?$");
                 return !string.IsNullOrWhiteSpace(arg) && regex.IsMatch(arg);
             });
         }
