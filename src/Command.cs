@@ -28,7 +28,7 @@ namespace st2forget.utils.commands
             };
             Arguments = new List<string>();
         }
-
+        
         protected abstract void OnExecute();
 
         protected abstract ICommand Filter();
@@ -46,7 +46,7 @@ namespace st2forget.utils.commands
             }
         }
 
-        protected void AddArgument(string name, string shortName = "", string description = "", bool isReqruied = false, bool isUnary = false)
+        protected void AddArgument(string name, string shortName = "", string description = "", bool isReqruied = false, bool isUnary = false, string format = null)
         {
             if (Schemas.Any(c => c.Name.Equals(name)))
             {
@@ -58,7 +58,8 @@ namespace st2forget.utils.commands
                 ShortName = shortName,
                 Description = description,
                 IsRequired = isReqruied,
-                IsUninary = isUnary
+                IsUninary = isUnary,
+                Format = format
             });
         }
 
@@ -86,6 +87,18 @@ namespace st2forget.utils.commands
                 {
                     $"Found argument {{f:Green}}{schema.Name}{{f:d}}, value: {{f:Green}}{regex.Replace(result, "")}{{f:d}}".PrettyPrint(ConsoleColor.White);
                 }
+
+                if (!string.IsNullOrWhiteSpace(schema.Format))
+                {
+                    var replaceRegexStr = $"^((-{schema.ShortName})|(--{schema.Name}))[:=]?";
+                    var replaceRegex = new Regex(replaceRegexStr);
+                    var valueStr = replaceRegex.Replace(result, "");
+                    if (!Regex.IsMatch(valueStr, schema.Format))
+                    {
+                        throw new ArgumentException($"Input value of {schema.Name} must match format of {schema.Format}");
+                    }
+                } 
+
                 if (!schema.IsRequired)
                 {   
                     continue;
@@ -111,7 +124,7 @@ namespace st2forget.utils.commands
 
             if (!string.IsNullOrWhiteSpace(result))
             {
-                result = Regex.Replace(result.Trim(), $"^((-{schema.ShortName})|(--{schema.Name}))[:=]?$", "");
+                result = Regex.Replace(result.Trim(), $"^((-{schema.ShortName})|(--{schema.Name}))[:=]?", "");
                 if (!string.IsNullOrWhiteSpace(result))
                 {
                     return (T) Convert.ChangeType(result.Trim(), typeof(T));
@@ -119,6 +132,10 @@ namespace st2forget.utils.commands
                 if (schema.IsRequired && !schema.IsUninary)
                 {
                     throw new ArgumentException($"Argument {{f:Yellow}}{schema.Name}{{f:d}} should have a value.");
+                }
+                if (schema.IsUninary)
+                {
+                    return (T)Convert.ChangeType("true", typeof(T));
                 }
                 return default(T);
             }
@@ -140,7 +157,7 @@ namespace st2forget.utils.commands
             }
             return Arguments.Any(arg =>
             {
-                var regex = new Regex($"((-{scheme.ShortName})|(--{scheme.Name}))([:=].+)?$");
+                var regex = new Regex($"((-{scheme.ShortName})|(--{scheme.Name}))([:=].+)?");
                 return !string.IsNullOrWhiteSpace(arg) && regex.IsMatch(arg);
             });
         }

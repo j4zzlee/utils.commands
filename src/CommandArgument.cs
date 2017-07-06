@@ -7,5 +7,6 @@ namespace st2forget.utils.commands
         public string Description { get; set; }
         public bool IsRequired { get; set; }
         public bool IsUninary { get; set; }
+        public string Format { get; set; }
     }
 }

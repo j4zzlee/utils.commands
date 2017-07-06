@@ -126,6 +126,126 @@ namespace st2forget.utils.commands.Test
             Assert.Throws<ArgumentException>(() => command.ReadArguments(args));
         }
 
+        public static IEnumerable<object[]> ComplexValueSuccessData => new[]
+        {
+            new[]
+            {
+                new[]
+                {
+                    "--str-value:C:\\Users\\BaoChau\\Source\\Repos\\st2forget.migrations\\st2forget.migrations.Tests\\MigrationTest",
+                    "--int-value:3",
+                    "--bool-value"
+                }
+                ,
+                new[]
+                {
+                    "C:\\Users\\BaoChau\\Source\\Repos\\st2forget.migrations\\st2forget.migrations.Tests\\MigrationTest",
+                    "3",
+                    "True"
+                }
+            },
+            new[]
+            {
+                new[]
+                {
+                    "-s:C:\\Users\\BaoChau\\Source\\Repos\\st2forget.migrations\\st2forget.migrations.Tests\\MigrationTest",
+                    "-i:3",
+                    "-b"
+                },
+                new[]
+                {
+                    "C:\\Users\\BaoChau\\Source\\Repos\\st2forget.migrations\\st2forget.migrations.Tests\\MigrationTest",
+                    "3",
+                    "True"
+                }
+            }
+        };
+
+        [Theory]
+        [MemberData(nameof(ComplexValueSuccessData))]
+        public void ComplexValueSuccessTest(string[] args, string[] expectedValues)
+        {
+            var command = new ComplexValueCommand();
+            command.ReadArguments(args);
+
+            Assert.Equal(command.ComplexStringValue, expectedValues[0]);
+            Assert.Equal(command.IntValue.ToString(), expectedValues[1]);
+            Assert.Equal(command.BoolValue.ToString(), expectedValues[2]);
+        }
+
+        public static IEnumerable<object[]> RegexSuccessTestCases => new[]
+        {
+            new[]
+            {
+                new[]
+                {
+                    "--version-regex:1",
+                    "--number-regex:3"
+                }
+            },
+            new[]
+            {
+                new[]
+                {
+                    "-v:1.0",
+                    "-n:3"
+                }
+            },
+            new[]
+            {
+                new[]
+                {
+                    "--version-regex:1.0.1",
+                    "--number-regex:323"
+                }
+            },
+            new[]
+            {
+                new[]
+                {
+                    "-v:1.0.0.1",
+                    "-n:323"
+                }
+            }
+        };
+
+        [Theory]
+        [MemberData(nameof(RegexSuccessTestCases))]
+        public void RegexSuccessTest(string[] args)
+        {
+            var command = new RegexValueCommand();
+            command.ReadArguments(args);
+            command.Execute();
+        }
+
+        public static IEnumerable<object[]> RegexFailTestCases => new[]
+        {
+            new[]
+            {
+                new[]
+                {
+                    "--version-regex:1.",
+                    "--number-regex:3"
+                }
+            },
+            new[]
+            {
+                new[]
+                {
+                    "-v:1.0",
+                    "-n:a"
+                }
+            }
+        };
+
+        [Theory]
+        [MemberData(nameof(RegexFailTestCases))]
+        public void RegexFailTest(string[] args)
+        {
+            var command = new RegexValueCommand();
+            Assert.Throws<ArgumentException>(() => command.ReadArguments(args));
+        }
+
         [Theory]
         [MemberData(nameof(SuccessData))]
         public void Success(string[] args)
