@@ -80,22 +80,44 @@ namespace st2forget.utils.commands
             "Verifying arguments...".PrettyPrint(ConsoleColor.White);
             foreach (var schema in Schemas)
             {
+                if (schema.IsUninary)
+                {
+                    continue;
+                }
                 var regStr = $"^((-{schema.ShortName})|(--{schema.Name}))([:=].*)?$";
                 var regex = new Regex(regStr);
                 var result = Arguments.FirstOrDefault(a => regex.IsMatch(a));
                 if (!string.IsNullOrWhiteSpace(result))
                 {
-                    $"Found argument {{f:Green}}{schema.Name}{{f:d}}, value: {{f:Green}}{regex.Replace(result, "")}{{f:d}}".PrettyPrint(ConsoleColor.White);
+                    $"Found argument {{f:Green}}{schema.Name}{{f:d}}, value: {{f:Green}}{regex.Replace(result, "")}{{f:d}}"
+                        .PrettyPrint(ConsoleColor.White);
                 }
-
+            
                 if (!string.IsNullOrWhiteSpace(schema.Format))
                 {
                     var replaceRegexStr = $"^((-{schema.ShortName})|(--{schema.Name}))[:=]?";
                     var replaceRegex = new Regex(replaceRegexStr);
-                    var valueStr = replaceRegex.Replace(result, "");
-                    if (!Regex.IsMatch(valueStr, schema.Format))
+                    var valueStr = replaceRegex.Replace(result ?? "", "");
+                    if (schema.IsRequired)
                     {
-                        throw new ArgumentException($"Input value of {schema.Name} must match format of {schema.Format}");
+                        if (string.IsNullOrWhiteSpace(valueStr))
+                        {
+                            throw new ArgumentException($"Argument {schema.Name} must not empty.");
+                        }
+
+                        if (!Regex.IsMatch(valueStr, schema.Format))
+                        {
+                            throw new ArgumentException(
+                                $"Input value of {schema.Name} must match format of {schema.Format}");
+                        }
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrWhiteSpace(valueStr) && !Regex.IsMatch(valueStr, schema.Format))
+                        {
+                            throw new ArgumentException(
+                                $"Input value of {schema.Name} must match format of {schema.Format}");
+                        }
                     }
                 } 
 
@@ -103,6 +125,7 @@ namespace st2forget.utils.commands
                 {   
                     continue;
                 }
+
                 if (string.IsNullOrWhiteSpace(result))
                 {
                     throw new ArgumentException($"Missing argument {{f:Yellow}}{schema.Name}{{f:d}}.");
